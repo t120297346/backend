@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import pool from "../database";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+const db = require("../models/index");
 
 const createUser = async (req: Request, res: Response): Promise<any> => {
   const { username, email, password } = req.body;
@@ -15,11 +16,11 @@ const createUser = async (req: Request, res: Response): Promise<any> => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    await pool.query("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", [
+    await db.insert("users", {
       username,
       email,
-      hashedPassword, // 儲存加密後的密碼
-    ]);
+      password: hashedPassword, // 儲存加密後的密碼
+    });
     return res.json({ message: "用戶新增成功" });
   } catch (error) {
     return res.status(500).json({ message: (error as any).code });
@@ -35,7 +36,7 @@ const login = async (req: Request, res: Response): Promise<any>=> {
   
     try {
       // 🔹 1. 查詢用戶是否存在
-      const [users]: any = await pool.query("SELECT * FROM users WHERE username = ?", [username]);
+      const users = await db.find("users", "username", username);
   
       if (users.length === 0) {
         return res.status(404).json({ message: "用戶不存在" });
@@ -68,4 +69,4 @@ const login = async (req: Request, res: Response): Promise<any>=> {
 module.exports = {
     createUser,
     login,
-  }
+}
